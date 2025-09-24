@@ -1,2 +1,2 @@
 # Food-Delivery-Poggers
-Code for DESN1K - ELEC by Team 17
+Code for Team 17's food delivery robot

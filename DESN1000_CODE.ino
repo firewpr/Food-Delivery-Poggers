@@ -1,7 +1,3 @@
-#include <Servo.h>
-
-#include <Servo.h>
-
 //////////////////////////////////////////////////////////////////
 // This is the basic Sumobots scaffold code authored by the workshops and
 // projects team for participants in MTRNSoc's 2024 sumobot competition.
@@ -11,33 +7,35 @@
 // REFER TO ARDUINO BASICS WORKSHOP ON HOW TO CODE SENSORS
 #include <SPI.h>
 #include <Pixy2.h>
-#include <Servo.h>
+
 Pixy2 pixy;
 int checkOffset(int tracking_index);
 // Ultrasonic sensor pins
 // CHANGE THIS
 #define echoPin1 6
 #define trigPin1 7
+#include <Servo.h>
 Servo Servo1;
 Servo Servo2;
+int servo1 = 11;
+int servo2 = 12;
 // TODO: Define constants/variables for motors (workshop 4)
-int RIGHT_SPEED = 3;  // Speed pin, ranges from 0 to 255 (PWMA)
-int RIGHT_DIR = 2;      // Direction pin (DIRA)
+int LEFT_IN1 = 3;  // Speed pin, ranges from 0 to 255 (PWMA)
+int LEFT_IN2 = 2;      // Direction pin (DIRA)
 int mode = 0;
-int LEFT_SPEED = 5;  // Speed pin, ranges from 0 to 255 (PWMB)
-int LEFT_DIR = 4;      // Pin to move motor forwards (DIRB)
+int RIGHT_IN2 = 5;  // Speed pin, ranges from 0 to 255 (PWMB)
+int RIGHT_IN1 = 4;      // Pin to move motor forwards (DIRB)
 int RED_LED = 8;
 int BLUE_LED = 9;
 int GREEN_LED = 10;
 int base_col = -1;
-int servo1 = 11;
-int servo2 = 12;
+
 // TODO: Define other constants to be used in your sumobot
 #define MAX_SPEED 255
 #define PARTIAL_SPEED 30
 #define SPEEDOFSENSOR 0.0340
 
-int i = 0;
+
 void centerObject(int tracking_index);
 int checkObjectDistance(int tracking_index);
 int checkOffset(int tracking_index);
@@ -60,6 +58,8 @@ void setup() {
   pixy.getResolution();
   Servo1.attach(servo1);
   Servo2.attach(servo2);
+  Servo1.write(125);
+  Servo2.write(38);
   Serial.begin(9600);
   while (i < 3) {
 
@@ -77,7 +77,6 @@ void setup() {
 void loop() {
   
   delay(2000);
-  Serial.println(i);
   //-1 Mode Searching for base colour
   if (mode == -1) {
     while (mode == -1) {
@@ -112,7 +111,7 @@ void loop() {
   } else if (mode == 0) {
     digitalWrite(RED_LED, LOW);
     digitalWrite(BLUE_LED, LOW);
-    digitalWrite(GREEN_LED, LOW);
+    digitalWrite(GREEN_LED, LOW); 
     pixy.ccc.getBlocks();
     // If there are blocks, check if any are valid food objects
     if (pixy.ccc.numBlocks) {
@@ -158,18 +157,23 @@ void loop() {
     digitalWrite(BLUE_LED, LOW);
     digitalWrite(GREEN_LED, LOW);
     //Servo opens up
-    int angle = map(45, 0, 180, 0, 180);
-    Servo1.write(angle);
-    Servo2.write(angle);
+
+    for (int j = 43; j > 15; j--) {
+    Servo2.write(j);
+    Servo1.write(175 - j);
+    delay(20);
+    }
     delay(300);
     //NEED TO CHANGE AMOUNT TO CENTER ON PINCERS
     driveForwards(50);
     delay(100);
     stop();
     //Close servos
-    angle = map(0, 0, 180, 0, 180);
-    Servo1.write(angle);
-    Servo2.write(angle);
+    for (int i = 15; i <  43; i++) {
+    Servo2.write(i);
+    Servo1.write(175 - i);
+    delay(20);
+  }
     delay(300);
 
     mode = 2;
@@ -188,7 +192,7 @@ void loop() {
         if (pixy.ccc.blocks[i].m_signature == base_col && abs((pixy.frameHeight/2 - pixy.ccc.blocks[i].m_y)) < 5) {
           stop();
           //drive towards base until close
-          while (getDistance(trigPin1, echoPin1) > 25) {
+          while (getDistance(trigPin1, echoPin1) > 15) {
             driveForwards(200);
             delay(50);
           }
@@ -206,18 +210,21 @@ void loop() {
     digitalWrite(RED_LED, LOW);
     digitalWrite(BLUE_LED, LOW);
     digitalWrite(GREEN_LED, HIGH);
-    //Open up servos
-    int angle = map(45, 0, 180, 0, 180);
-    Servo1.write(angle);
-    Servo2.write(angle);
-    delay(300);
-    //Drive forward, using bar as a pusher to push ball into base.
-    driveForwards(255);
-    delay(100);
-    driveBackwards(255);
+    for (int j = 43; j > 15; j--) {
+    Servo2.write(j);
+    Servo1.write(175 - j);
     delay(20);
+    Serial.println(j);
+    }
+    delay(2000);
+    for (int i = 15; i <  43; i++) {
+    Servo2.write(i);
+    Servo1.write(175 - i);
+    delay(20);
+    }
+    driveBackwards(255);
+    delay(200);
     stop();
-    delay(500);
     //Turn to face center of arena
     stationaryTurnRight(255);
     delay(240);
@@ -257,7 +264,9 @@ int checkObjectDistance(int tracking_index) {
         return 1;
       }
     }
+
   }
+  return -1;
 }
 //Check Offset
 // Scans vision for object with specific tracking_index and returns the offset from the center of the bot's vision
@@ -315,10 +324,10 @@ double getDistance(int trigPin, int echoPin) {
 
 void driveForwards(int speed) {
     Serial.println("Driving forward");
-    analogWrite(LEFT_SPEED, speed);
-    analogWrite(RIGHT_SPEED, speed);
-    digitalWrite(RIGHT_DIR, HIGH);
-    digitalWrite(LEFT_DIR, HIGH);
+    digitalWrite(RIGHT_IN2, LOW);
+    analogWrite(RIGHT_IN1, speed+20);
+    digitalWrite(LEFT_IN2, LOW);
+    analogWrite(LEFT_IN1, speed);
 }
 // ADDITIONAL: How can we change the above function to all the sumobot to move
 // forward at a variable speed? HINT: Modify the analogWrite functions
@@ -330,10 +339,10 @@ void driveForwards(int speed) {
 */
 void driveBackwards(int speed) {
   Serial.println("Driving backwards");
-    analogWrite(LEFT_SPEED, speed);
-    analogWrite(RIGHT_SPEED, speed);
-    digitalWrite(RIGHT_DIR, LOW);
-    digitalWrite(LEFT_DIR, LOW);
+    digitalWrite(RIGHT_IN1, LOW);
+    analogWrite(RIGHT_IN2, speed+20);
+    digitalWrite(LEFT_IN1, LOW);
+    analogWrite(LEFT_IN2, speed);
 }
 
 /*  Function: Turn left
@@ -345,19 +354,20 @@ void driveBackwards(int speed) {
 //Turn left in place
 void stationaryTurnLeft(int speed) {
   Serial.println("Turning left");
-  analogWrite(LEFT_SPEED, speed);
-  analogWrite(RIGHT_SPEED, speed);
-  digitalWrite(LEFT_DIR, LOW);
-  digitalWrite(RIGHT_DIR, HIGH);
+  digitalWrite(RIGHT_IN2, LOW);
+  analogWrite(RIGHT_IN1, speed+20);
+  digitalWrite(LEFT_IN1, LOW);
+  analogWrite(LEFT_IN2, speed);
 
 }
 
 //Turn left with an arc
 void turnLeft(int speed) {
   Serial.println("Moving left");
-  analogWrite(LEFT_SPEED, speed);
-  digitalWrite(RIGHT_SPEED, 0);
-  digitalWrite(LEFT_DIR, HIGH);
+  digitalWrite(RIGHT_IN2, LOW);
+  analogWrite(RIGHT_IN1, speed+20);
+  digitalWrite(LEFT_IN2, LOW);
+  digitalWrite(LEFT_IN1, LOW);
 }
 
 
@@ -366,25 +376,27 @@ void turnLeft(int speed) {
 //TURN RIGHT Function
 void stationaryTurnRight(int speed) {
   Serial.println("Turning right");
-  analogWrite(LEFT_SPEED, speed);
-  analogWrite(RIGHT_SPEED, speed);
-
-  digitalWrite(LEFT_DIR, HIGH);
-  digitalWrite(RIGHT_DIR, LOW);
+  digitalWrite(RIGHT_IN1, LOW);
+  analogWrite(RIGHT_IN2, speed+20);
+  digitalWrite(LEFT_IN2, LOW);
+  analogWrite(LEFT_IN1, speed);
 }
 
 void turnRight(int speed) {
   Serial.println("Moving right");
-  analogWrite(LEFT_SPEED, 0);
-  analogWrite(RIGHT_SPEED, speed);
 
-  digitalWrite(RIGHT_DIR, LOW);
+  digitalWrite(LEFT_IN2, LOW);
+  analogWrite(LEFT_IN1, speed+20);
+  digitalWrite(RIGHT_IN2, LOW);
+  digitalWrite(RIGHT_IN1, LOW);
 }
 
 
 //Stop function
 void stop() {
   Serial.println("STOP");
-  analogWrite(LEFT_SPEED, LOW);
-  analogWrite(RIGHT_SPEED, LOW);
+  digitalWrite(LEFT_IN2, HIGH);
+  digitalWrite(LEFT_IN1, HIGH);
+  digitalWrite(RIGHT_IN2, HIGH);
+  digitalWrite(RIGHT_IN1, HIGH);
 }

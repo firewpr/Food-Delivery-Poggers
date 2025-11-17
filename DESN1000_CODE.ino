@@ -48,6 +48,11 @@ void turnLeft(int speed);
 void stationaryTurnRight(int speed);
 void turnRight(int speed);
 void stop();
+void LeftMotor(int speed);
+void RightMotor(int speed);
+void runMode0(void);
+void runMode1(void);
+void runMode2(void);
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Setup Function /////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,6 +66,12 @@ void setup() {
   Servo1.write(125);
   Servo2.write(38);
   Serial.begin(9600);
+  
+  pinMode(LEFT_IN1, OUTPUT);
+  pinMode(LEFT_IN2, OUTPUT);
+  pinMode(RIGHT_IN1, OUTPUT);
+  pinMode(RIGHT_IN2, OUTPUT);
+
   while (i < 3) {
 
     delay(1000);
@@ -75,110 +86,278 @@ void setup() {
 // stop 2s, drive back 10ms, continue
 
 void loop() {
-  
+  runMode1();
   delay(2000);
-  //-1 Mode Searching for base colour
-  if (mode == -1) {
-    while (mode == -1) {
-      pixy.ccc.getBlocks();
-      for (int i = 0; i < pixy.ccc.numBlocks; i++) {
-        //Signatures 4-7 are the colours of the 4 different base colours
-        if (pixy.ccc.blocks[i].m_signature == 4) {
-          base_col = 4;
-          mode = 0;
-          break;
-        } else if (pixy.ccc.blocks[i].m_signature == 5) {
-          base_col = 5;
-          mode = 0;
-          break;
-        } else if (pixy.ccc.blocks[i].m_signature == 6) {
-          base_col = 6;
-          mode = 0;
-          break;
-        } else if (pixy.ccc.blocks[i].m_signature == 7) {
-          base_col = 7;
-          mode = 0;
-          break;
-        }
+  /* mode==0 test 
+  
+  */
+  // delay(2000);
+  // //-1 Mode Searching for base colour
+  // if (mode == -1) {
+  //   while (mode == -1) {
+  //     pixy.ccc.getBlocks();
+  //     for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+  //       //Signatures 4-7 are the colours of the 4 different base colours
+  //       if (pixy.ccc.blocks[i].m_signature == 4) {
+  //         base_col = 4;
+  //         mode = 0;
+  //         break;
+  //       } else if (pixy.ccc.blocks[i].m_signature == 5) {
+  //         base_col = 5;
+  //         mode = 0;
+  //         break;
+  //       } else if (pixy.ccc.blocks[i].m_signature == 6) {
+  //         base_col = 6;
+  //         mode = 0;
+  //         break;
+  //       } else if (pixy.ccc.blocks[i].m_signature == 7) {
+  //         base_col = 7;
+  //         mode = 0;
+  //         break;
+  //       } else mode = 1;
+  //     }
+  //   driveBackwards(180);
+  //   delay(100);
+  //   stationaryTurnRight(255);
+  //   delay(200);
+  //   stop();
+  //   }
+  // //MODE 0 SEARCHING
+  // } else if (mode == 0) {
+  //   digitalWrite(RED_LED, LOW);
+  //   digitalWrite(BLUE_LED, LOW);
+  //   digitalWrite(GREEN_LED, LOW); 
+  //   pixy.ccc.getBlocks();
+  //   // If there are blocks, check if any are valid food objects
+  //   if (pixy.ccc.numBlocks) {
+  //     int lowest_x = -1;
+  //     int lowest_tracking_index = -1;
+  //     for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+  //       // If detecting red, go to next object
+  //       if (pixy.ccc.blocks[i].m_signature == 3) {
+  //         continue;
+  //       }
+  //       //Checking for lowest object on screen (closest to bot) + is blue or green
+  //       if (pixy.ccc.blocks[i].m_x > lowest_x && pixy.ccc.blocks[i].m_age > 2 && (pixy.ccc.blocks[i].m_signature == 2 || pixy.ccc.blocks[i].m_signature == 1)) {
+  //         lowest_tracking_index = pixy.ccc.blocks[i].m_index;
+  //         lowest_x = pixy.ccc.blocks[i].m_x;
+  //       }
+  //     }
+  //     Serial.println("Lowest index: " + lowest_tracking_index);
+  //     if (lowest_tracking_index != -1) {
+  //       centerObject(lowest_tracking_index);
+  //       //Drives until object is at a specific close spot on the screen
+  //       while (checkObjectDistance(lowest_tracking_index) != 1) {
+  //         driveForwards(80);
+  //         delay(50);
+  //       }
+  //       driveBackwards(255);
+  //       delay(20);
+  //       stop();
+  //       mode = 1;
+  //     //BOTH stationaryTurnRight meant to change searching range to get new objects on screen
+  //     } else {
+  //       stationaryTurnRight(100);
+  //       delay(100);
+  //       stop();
+  //     }
+  //   } else {
+  //     stationaryTurnRight(100);
+  //     delay(100);
+  //     stop();
+  //   }
+  // //MODE 1 PICKING UP - RED LED ON
+  // } else if (mode == 1) {
+  //   digitalWrite(RED_LED, HIGH);
+  //   digitalWrite(BLUE_LED, LOW);
+  //   digitalWrite(GREEN_LED, LOW);
+  //   //Servo opens up
+
+  //   for (int j = 43; j > 15; j--) {
+  //   Servo2.write(j);
+  //   Servo1.write(175 - j);
+  //   delay(20);
+  //   }
+  //   delay(300);
+  //   //NEED TO CHANGE AMOUNT TO CENTER ON PINCERS
+  //   driveForwards(50);
+  //   delay(100);
+  //   stop();
+  //   //Close servos
+  //   for (int i = 15; i <  43; i++) {
+  //   Servo2.write(i);
+  //   Servo1.write(175 - i);
+  //   delay(20);
+  // }
+  //   delay(300);
+
+  //   mode = 2;
+  //   //CARRYING MODE - BLUE LED
+  // } else if (mode == 2) {
+  //   digitalWrite(RED_LED, LOW);
+  //   digitalWrite(BLUE_LED, HIGH);
+  //   digitalWrite(GREEN_LED, LOW);
+  //   delay(1000);
+  //   //Turns until base is in the center of screen
+  //   int base_detected = 0;
+  //   while (base_detected == 0) {
+  //     stationaryTurnLeft(100);
+  //     pixy.ccc.getBlocks();
+  //     for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+  //       if (pixy.ccc.blocks[i].m_signature == base_col && abs((pixy.frameHeight/2 - pixy.ccc.blocks[i].m_y)) < 5) {
+  //         stop();
+  //         //drive towards base until close
+  //         while (getDistance(trigPin1, echoPin1) > 15) {
+  //           driveForwards(200);
+  //           delay(50);
+  //         }
+  //         //
+  //         driveBackwards(200);
+  //         delay(20);
+  //         stop();
+  //         mode = 3;
+  //         break;
+  //       }
+  //     }
+  //   } 
+  // //RELEASING MODE - GREEN LED
+  // } else if (mode == 3) {
+  //   digitalWrite(RED_LED, LOW);
+  //   digitalWrite(BLUE_LED, LOW);
+  //   digitalWrite(GREEN_LED, HIGH);
+  //   for (int j = 43; j > 15; j--) {
+  //   Servo2.write(j);
+  //   Servo1.write(175 - j);
+  //   delay(20);
+  //   Serial.println(j);
+  //   }
+  //   delay(2000);
+  //   for (int i = 15; i <  43; i++) {
+  //   Servo2.write(i);
+  //   Servo1.write(175 - i);
+  //   delay(20);
+  //   }
+  //   driveBackwards(255);
+  //   delay(200);
+  //   stop();
+  //   //Turn to face center of arena
+  //   stationaryTurnRight(255);
+  //   delay(240);
+  //   stop();
+  //   //searching mode
+  //   mode = 0;
+  // }
+}
+
+void runMode0(void) {
+  delay(200);
+
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(BLUE_LED, LOW);
+  digitalWrite(GREEN_LED, LOW);
+
+  pixy.ccc.getBlocks();
+
+  Serial.print("Blocks detected: ");
+  Serial.println(pixy.ccc.numBlocks);
+
+  if (pixy.ccc.numBlocks) {
+    int lowest_tracking_index = -1;
+
+    for (int i=0; i<pixy.ccc.numBlocks; i++) {
+      Serial.print("block ");
+      Serial.print(i);
+      Serial.print(" sig=");
+      Serial.print(pixy.ccc.blocks[i].m_signature);
+      Serial.print(" x=");
+      Serial.print(pixy.ccc.blocks[i].m_x);
+      Serial.print(" y=");
+      Serial.print(pixy.ccc.blocks[i].m_y);
+      Serial.print(" age=");
+      Serial.println(pixy.ccc.blocks[i].m_age);
+
+      if (pixy.ccc.blocks[i].m_signature == 3) {
+        Serial.println("red block");
+        continue;
       }
-    driveBackwards(180);
-    delay(100);
-    stationaryTurnRight(255);
-    delay(200);
-    stop();
+
+      if (pixy.ccc.blocks[i].m_signature == 1 || pixy.ccc.blocks[i].m_signature == 2) {
+        lowest_tracking_index = pixy.ccc.blocks[i].m_index;
+        Serial.print("Chosen index");
+        Serial.println(lowest_tracking_index);
+        break;
+      }
     }
-  //MODE 0 SEARCHING
-  } else if (mode == 0) {
-    digitalWrite(RED_LED, LOW);
-    digitalWrite(BLUE_LED, LOW);
-    digitalWrite(GREEN_LED, LOW); 
-    pixy.ccc.getBlocks();
-    // If there are blocks, check if any are valid food objects
-    if (pixy.ccc.numBlocks) {
-      int lowest_x = -1;
-      int lowest_tracking_index = -1;
-      for (int i = 0; i < pixy.ccc.numBlocks; i++) {
-        // If detecting red, go to next object
-        if (pixy.ccc.blocks[i].m_signature == 3) {
-          continue;
+
+    if (lowest_tracking_index != -1) {
+      Serial.println("Centering on object");
+      centerObject(lowest_tracking_index);
+
+      Serial.println("Driving towards object");
+      int state = checkObjectDistance(lowest_tracking_index);
+      while (state != 1) {
+        Serial.print("Distance state (0 far,1 close,-1 lost): ");
+        Serial.println(state);
+        if (state == -1) {
+          Serial.println("ball lost");
+          break;
         }
-        //Checking for lowest object on screen (closest to bot) + is blue or green
-        if (pixy.ccc.blocks[i].m_x > lowest_x && pixy.ccc.blocks[i].m_age > 2 && (pixy.ccc.blocks[i].m_signature == 2 || pixy.ccc.blocks[i].m_signature == 1)) {
-          lowest_tracking_index = pixy.ccc.blocks[i].m_index;
-          lowest_x = pixy.ccc.blocks[i].m_x;
-        }
+        driveForwards(120);
+        delay(50);
+        state = checkObjectDistance(lowest_tracking_index);
       }
-      Serial.println("Lowest index: " + lowest_tracking_index);
-      if (lowest_tracking_index != -1) {
-        centerObject(lowest_tracking_index);
-        //Drives until object is at a specific close spot on the screen
-        while (checkObjectDistance(lowest_tracking_index) != 1) {
-          driveForwards(80);
-          delay(50);
-        }
-        driveBackwards(255);
-        delay(20);
-        stop();
-        mode = 1;
-      //BOTH stationaryTurnRight meant to change searching range to get new objects on screen
-      } else {
-        stationaryTurnRight(100);
-        delay(100);
-        stop();
-      }
+
+      Serial.println("Backing up");
+      driveBackwards(255);
+      delay(200);
+      stop();
     } else {
+      Serial.println("No valid object found");
       stationaryTurnRight(100);
-      delay(100);
+      delay(150);
       stop();
     }
-  //MODE 1 PICKING UP - RED LED ON
-  } else if (mode == 1) {
-    digitalWrite(RED_LED, HIGH);
-    digitalWrite(BLUE_LED, LOW);
-    digitalWrite(GREEN_LED, LOW);
-    //Servo opens up
-
-    for (int j = 43; j > 15; j--) {
-    Servo2.write(j);
-    Servo1.write(175 - j);
-    delay(20);
-    }
-    delay(300);
-    //NEED TO CHANGE AMOUNT TO CENTER ON PINCERS
-    driveForwards(50);
-    delay(100);
+  } else {
+    Serial.println("No object in sight");
+    stationaryTurnRight(120);
+    delay(150);
     stop();
-    //Close servos
-    for (int i = 15; i <  43; i++) {
-    Servo2.write(i);
-    Servo1.write(175 - i);
-    delay(20);
   }
-    delay(300);
 
-    mode = 2;
-    //CARRYING MODE - BLUE LED
-  } else if (mode == 2) {
+  delay(200);
+}
+
+void runMode1(void) {
+  digitalWrite(RED_LED, HIGH);
+  digitalWrite(BLUE_LED, LOW);
+  digitalWrite(GREEN_LED, LOW);
+
+  Servo2.write(15);
+  Servo1.write(160);
+  delay(1000);
+
+  Servo2.write(43);
+  Servo1.write(132);
+  // for (int j = 43; j > 15; j--) {
+  //   Servo2.write(j);
+  //   Servo1.write(175 - j);
+  //   delay(20);
+  // }
+  // delay(300);
+
+  // driveForwards(110);
+  // delay(100);
+  // stop();
+
+  // for (int i = 15; i < 43; i++) {
+  //   Servo2.write(i);
+  //   Servo1.write(175 - i);
+  //   delay(20);
+  // }
+  // delay(300);
+}
+
+void runMode2(void) {
     digitalWrite(RED_LED, LOW);
     digitalWrite(BLUE_LED, HIGH);
     digitalWrite(GREEN_LED, LOW);
@@ -202,38 +381,10 @@ void loop() {
           stop();
           mode = 3;
           break;
-        }
       }
-    } 
-  //RELEASING MODE - GREEN LED
-  } else if (mode == 3) {
-    digitalWrite(RED_LED, LOW);
-    digitalWrite(BLUE_LED, LOW);
-    digitalWrite(GREEN_LED, HIGH);
-    for (int j = 43; j > 15; j--) {
-    Servo2.write(j);
-    Servo1.write(175 - j);
-    delay(20);
-    Serial.println(j);
     }
-    delay(2000);
-    for (int i = 15; i <  43; i++) {
-    Servo2.write(i);
-    Servo1.write(175 - i);
-    delay(20);
-    }
-    driveBackwards(255);
-    delay(200);
-    stop();
-    //Turn to face center of arena
-    stationaryTurnRight(255);
-    delay(240);
-    stop();
-    //searching mode
-    mode = 0;
-  }
+  } 
 }
-
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// Sensor Functions ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -246,9 +397,9 @@ void centerObject(int tracking_index) {
   int offset = 0;
   while ((offset = checkOffset(tracking_index)) && abs(offset) > 3) {
     if (offset > 0) {
-      stationaryTurnLeft(80);
+      stationaryTurnLeft(150);
     } else {
-      stationaryTurnRight(80);
+      stationaryTurnRight(150);
     }
     delay(50);
   }
@@ -258,7 +409,7 @@ int checkObjectDistance(int tracking_index) {
   pixy.ccc.getBlocks();
   for (int i = 0; i < pixy.ccc.numBlocks; i++) {
     if (pixy.ccc.blocks[i].m_index == tracking_index) {
-      if (pixy.ccc.blocks[i].m_x > 50) {
+      if (pixy.ccc.blocks[i].m_y > 50) {
         return 0;
       } else {
         return 1;
@@ -278,7 +429,7 @@ int checkOffset(int tracking_index) {
   for (int i = 0; i < pixy.ccc.numBlocks; i++) {
     if (pixy.ccc.blocks[i].m_index == tracking_index) {
       //Subtracts the object's x value from the middle of the frame
-      return pixy.frameHeight/2 - pixy.ccc.blocks[i].m_y;
+      return pixy.frameWidth/2 - pixy.ccc.blocks[i].m_x;
     }
   }
   return 999;
@@ -321,75 +472,137 @@ double getDistance(int trigPin, int echoPin) {
 
 // What if you have more than 1 ultrasonic or infrared sensor? Do you need more
 // reading functions or can the same ones be used?
+void leftMotor(int speed) {
+  if (speed>0) {
+    digitalWrite(LEFT_IN2,LOW);
+    analogWrite(LEFT_IN1,speed);
+  } else if (speed<0) {
+    digitalWrite(LEFT_IN1,LOW);
+    analogWrite(LEFT_IN2,-speed);
+  } else {
+    digitalWrite(LEFT_IN1,LOW);
+    digitalWrite(LEFT_IN2, LOW);
+  }
+}
+
+void rightMotor(int speed) {
+  if (speed>0) {
+    digitalWrite(RIGHT_IN2,LOW);
+    analogWrite(RIGHT_IN1, speed +20);
+  } else if (speed<0) {
+    digitalWrite(RIGHT_IN1, LOW);
+    analogWrite(RIGHT_IN2, -speed+20);
+  } else {
+    digitalWrite(RIGHT_IN1,LOW);
+    digitalWrite(RIGHT_IN2,LOW);
+  }
+}
 
 void driveForwards(int speed) {
-    Serial.println("Driving forward");
-    digitalWrite(RIGHT_IN2, LOW);
-    analogWrite(RIGHT_IN1, speed+20);
-    digitalWrite(LEFT_IN2, LOW);
-    analogWrite(LEFT_IN1, speed);
+  Serial.println("Driving forward");
+  leftMotor(speed);
+  rightMotor(speed);
 }
-// ADDITIONAL: How can we change the above function to all the sumobot to move
-// forward at a variable speed? HINT: Modify the analogWrite functions
 
-/*  Function: Drive backwards
-/   parameters: none
-/   returns: none
-/   summary: this function drives sumobot backwards
-*/
 void driveBackwards(int speed) {
   Serial.println("Driving backwards");
-    digitalWrite(RIGHT_IN1, LOW);
-    analogWrite(RIGHT_IN2, speed+20);
-    digitalWrite(LEFT_IN1, LOW);
-    analogWrite(LEFT_IN2, speed);
+  leftMotor(-speed);
+  rightMotor(-speed);
 }
 
-/*  Function: Turn left
-/   parameters: none
-/   returns: none
-/   summary: this function turns sumobot to the left
-*/
-
-//Turn left in place
 void stationaryTurnLeft(int speed) {
   Serial.println("Turning left");
-  digitalWrite(RIGHT_IN2, LOW);
-  analogWrite(RIGHT_IN1, speed+20);
-  digitalWrite(LEFT_IN1, LOW);
-  analogWrite(LEFT_IN2, speed);
-
+  leftMotor(0);
+  rightMotor(speed);
 }
 
-//Turn left with an arc
-void turnLeft(int speed) {
-  Serial.println("Moving left");
-  digitalWrite(RIGHT_IN2, LOW);
-  analogWrite(RIGHT_IN1, speed+20);
-  digitalWrite(LEFT_IN2, LOW);
-  digitalWrite(LEFT_IN1, LOW);
-}
-
-
-// What other movement functions might we need?
-// TODO: Create some of your own movement functions.
-//TURN RIGHT Function
 void stationaryTurnRight(int speed) {
   Serial.println("Turning right");
-  digitalWrite(RIGHT_IN1, LOW);
-  analogWrite(RIGHT_IN2, speed+20);
-  digitalWrite(LEFT_IN2, LOW);
-  analogWrite(LEFT_IN1, speed);
+  leftMotor(speed);
+  rightMotor(0);
+}
+
+void turnLeft(int speed) {
+  Serial.println("Moving left");
+  leftMotor(speed/1.5);
+  rightMotor(speed);
 }
 
 void turnRight(int speed) {
   Serial.println("Moving right");
-
-  digitalWrite(LEFT_IN2, LOW);
-  analogWrite(LEFT_IN1, speed+20);
-  digitalWrite(RIGHT_IN2, LOW);
-  digitalWrite(RIGHT_IN1, LOW);
+  leftMotor(speed);
+  rightMotor(speed/1.5);
 }
+
+// void driveForwards(int speed) {
+//     Serial.println("Driving forward");
+//     digitalWrite(RIGHT_IN2, LOW);
+//     analogWrite(RIGHT_IN1, speed+20);
+//     digitalWrite(LEFT_IN2, LOW);
+//     analogWrite(LEFT_IN1, speed);
+// }
+// // ADDITIONAL: How can we change the above function to all the sumobot to move
+// // forward at a variable speed? HINT: Modify the analogWrite functions
+
+// /*  Function: Drive backwards
+// /   parameters: none
+// /   returns: none
+// /   summary: this function drives sumobot backwards
+// */
+// void driveBackwards(int speed) {
+//   Serial.println("Driving backwards");
+//     digitalWrite(RIGHT_IN1, LOW);
+//     analogWrite(RIGHT_IN2, speed+20);
+//     digitalWrite(LEFT_IN1, LOW);
+//     analogWrite(LEFT_IN2, speed);
+// }
+
+// /*  Function: Turn left
+// /   parameters: none
+// /   returns: none
+// /   summary: this function turns sumobot to the left
+// */
+
+// //Turn left in place
+// void stationaryTurnLeft(int speed) {
+//   Serial.println("Turning left");
+//   analogWrite(LEFT_IN1, speed);
+//   digitalWrite(LEFT_IN2, HIGH);
+
+//   analogWrite(RIGHT_IN2, speed);
+//   digitalWrite(RIGHT_IN1, LOW);
+
+// }
+
+// //Turn left with an arc
+// void turnLeft(int speed) {
+//   Serial.println("Moving left");
+//   digitalWrite(RIGHT_IN2, LOW);
+//   analogWrite(RIGHT_IN1, speed+100);
+//   digitalWrite(LEFT_IN2, LOW);
+//   analogWrite(LEFT_IN1, speed);
+// }
+
+
+// // What other movement functions might we need?
+// // TODO: Create some of your own movement functions.
+// //TURN RIGHT Function
+// void stationaryTurnRight(int speed) {
+//   Serial.println("Turning right");
+//   digitalWrite(LEFT_IN2, LOW);
+//   analogWrite(LEFT_IN1, speed);
+//   digitalWrite(RIGHT_IN2, LOW);
+//   analogWrite(RIGHT_IN1, LOW);
+// }
+
+// void turnRight(int speed) {
+//   Serial.println("Moving right");
+
+//   digitalWrite(LEFT_IN2, LOW);
+//   analogWrite(LEFT_IN1, speed+20);
+//   digitalWrite(RIGHT_IN2, LOW);
+//   digitalWrite(RIGHT_IN1, LOW);
+// }
 
 
 //Stop function

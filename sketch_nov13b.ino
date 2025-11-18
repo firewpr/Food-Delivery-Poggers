@@ -359,11 +359,14 @@ void runMode0(void) {
         if (state == -1) {
           Serial.println("ball lost");
           break;
+        } else if (getDistance(trigPin1, echoPin1) < 30) {
+          delay(400);
+        } else {
+          adjustedDriveForwards(150);
+          delay(80);
+          stop();
+          delay(200);
         }
-        adjustedDriveForwards(150);
-        delay(80);
-        stop();
-        delay(200);
         state = checkObjectDistance(lowest_tracking_index);
         delay(200);
       }
@@ -447,6 +450,7 @@ void runMode2(void) {
           }       
         stop();
         mode = 3;
+        base_detected = 1;
         break;
         }
       }

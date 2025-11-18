@@ -14,13 +14,13 @@ Pixy2 pixy;
 int checkOffset(int tracking_index);
 // Ultrasonic sensor pins
 // CHANGE THIS
-#define echoPin1 6
-#define trigPin1 7
+#define echoPin1 12
+#define trigPin1 11
 #include <Servo.h>
 Servo Servo1;
 Servo Servo2;
-int servo1 = 11;
-int servo2 = 12;
+int servo1 = 7;
+int servo2 = 6;
 // TODO: Define constants/variables for motors (workshop 4)
 int LEFT_IN1 = 3;  // Speed pin, ranges from 0 to 255 (PWMA)
 int LEFT_IN2 = 5;      // Direction pin (DIRA)
@@ -37,12 +37,15 @@ int base_col = -1;
 #define PARTIAL_SPEED 30
 #define SPEEDOFSENSOR 0.0340
 
-
+void runModeBase();
+void runMode3();
+int centerBase(int tracking_index);
 int centerObject(int tracking_index);
 int checkObjectDistance(int tracking_index);
 int checkOffset(int tracking_index);
 void detectObstacle(int trigPin, int echoPin);
 double getDistance(int trigPin, int echoPin);
+void  adjustedDriveForwards(int speed);
 void driveForwards(int speed);
 void driveBackwards(int speed);
 void stationaryTurnLeft(int speed);
@@ -60,17 +63,16 @@ void runMode2(void);
 ////////////////////////////////////////////////////////////////////////////////
 
 void setup() {
-  int i = 0;
-  pixy.init();
-  pixy.getResolution();
   Servo1.attach(servo1);
   Servo2.attach(servo2);
   Servo1.write(125);
   Servo2.write(38);
   Serial.begin(9600);
+  int i = 0;
   digitalWrite(RED_LED, LOW);
   digitalWrite(BLUE_LED, LOW);
   digitalWrite(GREEN_LED, LOW);
+  pixy.init();
   pinMode(LEFT_IN1, OUTPUT);
   pinMode(LEFT_IN2, OUTPUT);
   pinMode(RIGHT_IN1, OUTPUT);
@@ -81,7 +83,6 @@ void setup() {
     delay(1000);
     i++;
   }
-  i = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -90,15 +91,26 @@ void setup() {
 // stop 2s, drive back 10ms, continue
 
 void loop() {
-
-  runMode1();
-  delay(50);
-  while( 1) {
-    delay(50);
+  if (mode == -1) {
+    runModeBase();
+  } else if (mode == 0) {
+    runMode0();
+  } else if (mode == 1) {
+    runMode1();
+  } else if (mode == 2) {
+    runMode2();
+  } else if (mode == 3) {
+    runMode3();
+  } else {
+    while (1) {
+      delay(50);
+    }
   }
-  /* mode==0 test 
+ 
+
+//ode==0 test 
   
-  */
+  
   // delay(2000);
   // //-1 Mode Searching for base colour
   // if (mode == -1) {
@@ -255,6 +267,40 @@ void loop() {
   //   //searching mode
   //   mode = 0;
   // }
+
+}
+
+void runModeBase() {
+  while (mode == -1) {
+    pixy.ccc.getBlocks();
+    for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+      //Signatures 4-7 are the colours of the 4 different base colours
+      if (pixy.ccc.blocks[i].m_signature == 4) {
+        base_col = 4;
+        mode = 0;
+        break;
+      } else if (pixy.ccc.blocks[i].m_signature == 5) {
+        base_col = 5;
+        mode = 0;
+        break;
+      } else if (pixy.ccc.blocks[i].m_signature == 6) {
+        base_col = 6;
+        mode = 0;
+        break;
+      } else if (pixy.ccc.blocks[i].m_signature == 7) {
+        base_col = 7;
+        mode = 0;
+        break;
+      }
+    }
+  }
+  driveBackwards(150);
+  delay(100);
+  stop();
+  delay(1000);
+  stationaryTurnRight(200);
+  delay(2000);
+  stop();
 }
 
 void runMode0(void) {
@@ -271,6 +317,7 @@ void runMode0(void) {
 
   if (pixy.ccc.numBlocks) {
     int lowest_tracking_index = -1;
+    int lowest_x = 999;
 
     for (int i=0; i<pixy.ccc.numBlocks; i++) {
       Serial.print("block ");
@@ -289,11 +336,11 @@ void runMode0(void) {
         continue;
       }
 
-      if (pixy.ccc.blocks[i].m_signature == 1 || pixy.ccc.blocks[i].m_signature == 2) {
+      if ((pixy.ccc.blocks[i].m_signature == 1 || pixy.ccc.blocks[i].m_signature == 2)  && pixy.ccc.blocks[i].m_x < lowest_x) {
         lowest_tracking_index = pixy.ccc.blocks[i].m_index;
+        lowest_x = pixy.ccc.blocks[i].m_x;
         Serial.print("Chosen index");
         Serial.println(lowest_tracking_index);
-        break;
       }
     }
 
@@ -321,6 +368,9 @@ void runMode0(void) {
         delay(200);
       }
       stop();
+      if (state == 1) {
+        mode = 1;
+      }
     } else {
       Serial.println("No valid object found");
       stationaryTurnRight(100);
@@ -351,10 +401,14 @@ void runMode1(void) {
     Servo1.write(175 - j);
     delay(30);
   }
-  delay(300);
-  driveForwards(110);
-  delay(300);
-  stop();
+  delay(1000);
+  for (int k = 0; k < 4; k++) {
+    adjustedDriveForwards(110);
+    delay(100);
+    stop();
+    delay(150);
+  }
+  delay(1000);
   for (int i = 15; i < 43; i++) {
     Serial.println("closing");
     Servo2.write(i);
@@ -362,35 +416,70 @@ void runMode1(void) {
     delay(20);
   }
   delay(300);
+  mode = 2;
 }
 
 void runMode2(void) {
-    digitalWrite(RED_LED, LOW);
-    digitalWrite(BLUE_LED, HIGH);
-    digitalWrite(GREEN_LED, LOW);
-    delay(1000);
-    //Turns until base is in the center of screen
-    int base_detected = 0;
-    while (base_detected == 0) {
-      stationaryTurnLeft(100);
-      pixy.ccc.getBlocks();
-      for (int i = 0; i < pixy.ccc.numBlocks; i++) {
-        if (pixy.ccc.blocks[i].m_signature == base_col && abs((103 - pixy.ccc.blocks[i].m_y)) < 5) {
-          stop();
-          //drive towards base until close
-          while (getDistance(trigPin1, echoPin1) > 15) {
-            driveForwards(200);
-            delay(50);
-          }
-          //
-          driveBackwards(200);
-          delay(20);
-          stop();
-          mode = 3;
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(BLUE_LED, HIGH);
+  digitalWrite(GREEN_LED, LOW);
+  delay(1000);
+
+  //Turns until base is in the center of screen
+  int base_detected = 0;
+  while (base_detected == 0) {
+    stationaryTurnLeft(130);
+    delay(250);
+    stop();
+    delay(2500);
+    pixy.ccc.getBlocks();
+    for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+      if (pixy.ccc.blocks[i].m_signature == base_col) {
+        int centered = centerBase(i);
+        if (centered = 0) {
           break;
+        } else {
+          while (getDistance(trigPin1, echoPin1) > 15) {
+            driveForwards(120);
+            delay(150);
+            stop();
+            delay(2500);
+          }       
+        stop();
+        mode = 3;
+        break;
+        }
       }
     }
-  } 
+  }
+} 
+
+void runMode3() {
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(BLUE_LED, LOW);
+  digitalWrite(GREEN_LED, HIGH);
+  for (int j = 43; j > 15; j--) {
+  Servo2.write(j);
+  Servo1.write(175 - j);
+  delay(20);
+  Serial.println(j);
+  }
+  delay(2000);
+  for (int i = 15; i <  43; i++) {
+  Servo2.write(i);
+  Servo1.write(175 - i);
+  delay(20);
+  }
+  driveBackwards(150);
+  delay(650);
+  stop();
+  //Turn to face center of arena
+  delay(2000);
+  stationaryTurnRight(200);
+  delay(2000);
+  stop();
+  //searching mode
+  mode = 0;
 }
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// Sensor Functions ///////////////////////////////////
@@ -402,19 +491,19 @@ void runMode2(void) {
 // Returns: None
 int centerObject(int tracking_index) {
   int offset = 0;
-  while ((offset = checkOffset(tracking_index)) && (abs(offset) > 5)) {
+  while ((offset = checkOffset(tracking_index)) && (abs(offset) > 4)) {
     Serial.println(offset);
     if (offset == 999) {
       mode = 0;
       return 0;
     } else {
       if (offset > 0) {
-        stationaryTurnLeft(100);
+        stationaryTurnLeft(120);
         delay(180);
         stop();
       } else {
-        stationaryTurnRight(100);
-        delay(180);
+        stationaryTurnRight(120);
+        delay(70);
         stop();
       }
     }
@@ -423,11 +512,33 @@ int centerObject(int tracking_index) {
   return 1;
 }
 
+int centerBase(int tracking_index) {
+  int offset = 0;
+  while ((offset = checkOffset(tracking_index)) && (abs(offset) > 5)) {
+    Serial.println(offset);
+    if (offset == 999) {
+      return 0;
+    } else {
+      if (offset > 0) {
+        stationaryTurnLeft(120);
+        delay(180);
+        stop();
+      } else {
+        stationaryTurnRight(120);
+        delay(70);
+        stop();
+      }
+    }
+    delay(1000);
+  }
+  return 1;
+}
+
 int checkObjectDistance(int tracking_index) {
   pixy.ccc.getBlocks();
   for (int i = 0; i < pixy.ccc.numBlocks; i++) {
     if (pixy.ccc.blocks[i].m_index == tracking_index) {
-      if (pixy.ccc.blocks[i].m_x > 82) {
+      if (pixy.ccc.blocks[i].m_x > 90) {
         return 0;
       } else {
         return 1;
@@ -447,7 +558,7 @@ int checkOffset(int tracking_index) {
   for (int i = 0; i < pixy.ccc.numBlocks; i++) {
     if (pixy.ccc.blocks[i].m_index == tracking_index) {
       //Subtracts the object's x(y) value from the middle of the frame
-      return 103 - pixy.ccc.blocks[i].m_y;
+      return 125 - pixy.ccc.blocks[i].m_y;
     }
   }
   return 999;
@@ -534,7 +645,7 @@ void turnRight(int speed) {
  void driveForwards(int speed) {
      Serial.println("Driving forward");
      digitalWrite(RIGHT_IN2, LOW);
-     analogWrite(RIGHT_IN1, speed+20);
+     analogWrite(RIGHT_IN1, speed+5);
      digitalWrite(LEFT_IN2, LOW);
      analogWrite(LEFT_IN1, speed);
  }
@@ -542,9 +653,9 @@ void turnRight(int speed) {
  void  adjustedDriveForwards(int speed) {
      Serial.println("Driving forward");
      digitalWrite(RIGHT_IN2, LOW);
-     analogWrite(RIGHT_IN1, speed+5);
+     analogWrite(RIGHT_IN1, speed+25);
      digitalWrite(LEFT_IN2, LOW);
-     analogWrite(LEFT_IN1, speed+15);
+     analogWrite(LEFT_IN1, speed);
  }
  // ADDITIONAL: How can we change the above function to all the sumobot to move
  // forward at a variable speed? HINT: Modify the analogWrite function
@@ -592,8 +703,8 @@ void turnRight(int speed) {
 void stationaryTurnRight(int speed) {
   Serial.println("Turning right");
   digitalWrite(LEFT_IN2, LOW);
-  digitalWrite(LEFT_IN1, HIGH);
-  digitalWrite(RIGHT_IN2, HIGH);
+  analogWrite(LEFT_IN1, speed);
+  analogWrite(RIGHT_IN2, speed + 10);
   digitalWrite(RIGHT_IN1, LOW);
 }
 

@@ -302,6 +302,9 @@ void runModeBase() {
   stationaryTurnRight(240);
   delay(2900);
   stop();
+  driveForwards(200);
+  delay(300);
+  stop();
 }
 
 void runMode0(void) {
@@ -370,7 +373,6 @@ void runMode0(void) {
         delay(200);
       }
       stop();
-      centerObject(lowest_tracking_index);
       if (state == 1) {
         mode = 1;
       }
@@ -407,7 +409,7 @@ void runMode1(void) {
   delay(1000);
   for (int k = 0; k < 3; k++) {
     secondadjustedDriveForwards(130);
-    delay(100);
+    delay(120);
     stop();
     delay(150);
   }
@@ -428,7 +430,7 @@ void runMode2(void) {
   digitalWrite(GREEN_LED, LOW);
   delay(1000);
   Serial.println(pixy.ccc.numBlocks);
-  int hasBall = 0;
+
   if (pixy.ccc.numBlocks) {
     for (int l = 0; l < pixy.ccc.numBlocks; l++) {
       if (pixy.ccc.blocks[l].m_signature == 3 && pixy.ccc.blocks[l].m_x < 70) {
@@ -452,17 +454,8 @@ void runMode2(void) {
         }
         mode = 0;
         return;
-      } else if ((pixy.ccc.blocks[l].m_signature == 1 || pixy.ccc.blocks[l].m_signature == 2)  && pixy.ccc.blocks[l].m_x < 70) {
-        hasBall = 1;
       }
     }
-  }
-  if (hasBall == 0) {
-    driveBackwards(200);
-    delay(300);
-    stop();
-    mode = 0;
-    return; 
   }
   //Turns until base is in the center of screen
   int base_detected = 0;
@@ -598,7 +591,7 @@ int checkOffset(int tracking_index) {
     if (pixy.ccc.blocks[i].m_index == tracking_index) {
       Serial.println("here");
       //Subtracts the object's x(y) value from the middle of the frame
-      return 115 - pixy.ccc.blocks[i].m_y;
+      return 110 - pixy.ccc.blocks[i].m_y;
     }
   }
   return 999;

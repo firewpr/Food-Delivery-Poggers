@@ -14,24 +14,23 @@ Pixy2 pixy;
 int checkOffset(int tracking_index);
 // Ultrasonic sensor pins
 // CHANGE THIS
-#define echoPin1 12
-#define trigPin1 11
+#define echoPin1 6
+#define trigPin1 7
 #include <Servo.h>
 Servo Servo1;
 Servo Servo2;
-int servo1 = 7;
-int servo2 = 6;
+int servo1 = 16;
+int servo2 = 17;
 // TODO: Define constants/variables for motors (workshop 4)
 int LEFT_IN1 = 3;  // Speed pin, ranges from 0 to 255 (PWMA)
 int LEFT_IN2 = 5;      // Direction pin (DIRA)
-int mode = 0;
+int mode = 2;
 int RIGHT_IN2 = 2;  // Speed pin, ranges from 0 to 255 (PWMB)
 int RIGHT_IN1 = 4;      // Pin to move motor forwards (DIRB)
 int RED_LED = 8;
 int BLUE_LED = 9;
-int GREEN_LED = 10;
-int base_col = -1;
-
+int GREEN_LED = 15;
+int base_col = 7;
 // TODO: Define other constants to be used in your sumobot
 #define MAX_SPEED 255
 #define PARTIAL_SPEED 30
@@ -58,6 +57,7 @@ void RightMotor(int speed);
 void runMode0(void);
 void runMode1(void);
 void runMode2(void);
+void  secondadjustedDriveForwards(int speed);
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Setup Function /////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -91,9 +91,8 @@ void setup() {
 // stop 2s, drive back 10ms, continue
 
 void loop() {
-  if (mode == -1) {
-    runModeBase();
-  } else if (mode == 0) {
+
+  if (mode == 0) {
     runMode0();
   } else if (mode == 1) {
     runMode1();
@@ -101,12 +100,12 @@ void loop() {
     runMode2();
   } else if (mode == 3) {
     runMode3();
-  } else {
+  }
     while (1) {
       delay(50);
     }
-  }
- 
+
+}
 
 //ode==0 test 
   
@@ -268,7 +267,6 @@ void loop() {
   //   mode = 0;
   // }
 
-}
 
 void runModeBase() {
   while (mode == -1) {
@@ -294,12 +292,13 @@ void runModeBase() {
       }
     }
   }
+  Serial.println(base_col);
   driveBackwards(150);
-  delay(100);
+  delay(500);
   stop();
   delay(1000);
-  stationaryTurnRight(200);
-  delay(2000);
+  stationaryTurnRight(250);
+  delay(3200);
   stop();
 }
 
@@ -359,11 +358,9 @@ void runMode0(void) {
         if (state == -1) {
           Serial.println("ball lost");
           break;
-        } else if (getDistance(trigPin1, echoPin1) < 30) {
-          delay(400);
         } else {
-          adjustedDriveForwards(150);
-          delay(80);
+          adjustedDriveForwards(140);
+          delay(100);
           stop();
           delay(200);
         }
@@ -371,20 +368,21 @@ void runMode0(void) {
         delay(200);
       }
       stop();
+      centerObject(lowest_tracking_index);
       if (state == 1) {
         mode = 1;
       }
     } else {
       Serial.println("No valid object found");
-      stationaryTurnRight(100);
-      delay(50);
+      stationaryTurnRight(200);
+      delay(200);
       stop();
       delay(1000);
     }
   } else {
     Serial.println("No object in sight");
-    stationaryTurnRight(120);
-    delay(50);
+    stationaryTurnRight(200);
+    delay(200);
     stop();
     delay(1000);
   }
@@ -405,8 +403,8 @@ void runMode1(void) {
     delay(30);
   }
   delay(1000);
-  for (int k = 0; k < 4; k++) {
-    adjustedDriveForwards(110);
+  for (int k = 0; k < 3; k++) {
+    secondadjustedDriveForwards(130);
     delay(100);
     stop();
     delay(150);
@@ -427,31 +425,55 @@ void runMode2(void) {
   digitalWrite(BLUE_LED, HIGH);
   digitalWrite(GREEN_LED, LOW);
   delay(1000);
+  Serial.println(pixy.ccc.numBlocks);
 
+  if (pixy.ccc.numBlocks) {
+    for (int l = 0; l < pixy.ccc.numBlocks; l++) {
+      if (pixy.ccc.blocks[l].m_signature == 3 && pixy.ccc.blocks[l].m_x < 70) {
+        for (int j = 43; j > 15; j--) {
+          Serial.println("opening");
+          Serial.println(j);
+          Servo2.write(j);
+          Servo1.write(175 - j);
+          delay(30);
+        }
+        delay(1000);
+        driveBackwards(200);
+        delay(600);
+        stop();
+        delay(1000);
+        for (int i = 15; i < 43; i++) {
+          Serial.println("closing");
+          Servo2.write(i);
+          Servo1.write(175 - i);
+          delay(20);
+        }
+        mode = 0;
+        return;
+      }
+    }
+  }
   //Turns until base is in the center of screen
   int base_detected = 0;
   while (base_detected == 0) {
-    stationaryTurnLeft(130);
-    delay(250);
+    stationaryTurnLeft(160);
+    delay(260);
     stop();
-    delay(2500);
+    delay(2000);
     pixy.ccc.getBlocks();
     for (int i = 0; i < pixy.ccc.numBlocks; i++) {
       if (pixy.ccc.blocks[i].m_signature == base_col) {
-        int centered = centerBase(i);
+        int centered = centerBase(pixy.ccc.blocks[i].m_index);
         if (centered = 0) {
           break;
         } else {
-          while (getDistance(trigPin1, echoPin1) > 15) {
-            driveForwards(120);
-            delay(150);
-            stop();
-            delay(2500);
+          while (getDistance(trigPin1, echoPin1) > 5) {
+            driveForwards(130);
+            delay(250);
           }       
-        stop();
-        mode = 3;
-        base_detected = 1;
-        break;
+          stop();
+          mode = 3;
+          return;
         }
       }
     }
@@ -475,12 +497,11 @@ void runMode3() {
   delay(20);
   }
   driveBackwards(150);
-  delay(650);
+  delay(1200);
   stop();
-  //Turn to face center of arena
-  delay(2000);
-  stationaryTurnRight(200);
-  delay(2000);
+  delay(1000);
+  stationaryTurnRight(250);
+  delay(3200);
   stop();
   //searching mode
   mode = 0;
@@ -502,12 +523,12 @@ int centerObject(int tracking_index) {
       return 0;
     } else {
       if (offset > 0) {
-        stationaryTurnLeft(120);
-        delay(180);
+        stationaryTurnLeft(130);
+        delay(120);
         stop();
       } else {
         stationaryTurnRight(120);
-        delay(70);
+        delay(120);
         stop();
       }
     }
@@ -517,6 +538,7 @@ int centerObject(int tracking_index) {
 }
 
 int centerBase(int tracking_index) {
+  Serial.println("center base");
   int offset = 0;
   while ((offset = checkOffset(tracking_index)) && (abs(offset) > 5)) {
     Serial.println(offset);
@@ -524,12 +546,12 @@ int centerBase(int tracking_index) {
       return 0;
     } else {
       if (offset > 0) {
-        stationaryTurnLeft(120);
-        delay(180);
+        stationaryTurnLeft(130);
+        delay(120);
         stop();
       } else {
         stationaryTurnRight(120);
-        delay(70);
+        delay(120);
         stop();
       }
     }
@@ -542,7 +564,7 @@ int checkObjectDistance(int tracking_index) {
   pixy.ccc.getBlocks();
   for (int i = 0; i < pixy.ccc.numBlocks; i++) {
     if (pixy.ccc.blocks[i].m_index == tracking_index) {
-      if (pixy.ccc.blocks[i].m_x > 90) {
+      if (pixy.ccc.blocks[i].m_x > 84) {
         return 0;
       } else {
         return 1;
@@ -561,8 +583,9 @@ int checkOffset(int tracking_index) {
   pixy.ccc.getBlocks();
   for (int i = 0; i < pixy.ccc.numBlocks; i++) {
     if (pixy.ccc.blocks[i].m_index == tracking_index) {
+      Serial.println("here");
       //Subtracts the object's x(y) value from the middle of the frame
-      return 125 - pixy.ccc.blocks[i].m_y;
+      return 120 - pixy.ccc.blocks[i].m_y;
     }
   }
   return 999;
@@ -642,14 +665,16 @@ void turnLeft(int speed) {
 
 void turnRight(int speed) {
   Serial.println("Moving right");
-  leftMotor(speed);
-  rightMotor(speed/(1.5));
+  analogWrite(LEFT_IN2, speed);
+   digitalWrite(LEFT_IN1, LOW);
+   analogWrite(RIGHT_IN1, speed);
+   digitalWrite(RIGHT_IN2, LOW);
 }
 
  void driveForwards(int speed) {
      Serial.println("Driving forward");
      digitalWrite(RIGHT_IN2, LOW);
-     analogWrite(RIGHT_IN1, speed+5);
+     analogWrite(RIGHT_IN1, speed);
      digitalWrite(LEFT_IN2, LOW);
      analogWrite(LEFT_IN1, speed);
  }
@@ -657,7 +682,15 @@ void turnRight(int speed) {
  void  adjustedDriveForwards(int speed) {
      Serial.println("Driving forward");
      digitalWrite(RIGHT_IN2, LOW);
-     analogWrite(RIGHT_IN1, speed+25);
+     analogWrite(RIGHT_IN1, speed);
+     digitalWrite(LEFT_IN2, LOW);
+     analogWrite(LEFT_IN1, speed+13);
+ }
+ 
+ void  secondadjustedDriveForwards(int speed) {
+     Serial.println("Driving forward");
+     digitalWrite(RIGHT_IN2, LOW);
+     analogWrite(RIGHT_IN1, speed+10);
      digitalWrite(LEFT_IN2, LOW);
      analogWrite(LEFT_IN1, speed);
  }
@@ -708,7 +741,7 @@ void stationaryTurnRight(int speed) {
   Serial.println("Turning right");
   digitalWrite(LEFT_IN2, LOW);
   analogWrite(LEFT_IN1, speed);
-  analogWrite(RIGHT_IN2, speed + 10);
+  analogWrite(RIGHT_IN2, speed);
   digitalWrite(RIGHT_IN1, LOW);
 }
 

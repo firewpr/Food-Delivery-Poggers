@@ -303,7 +303,7 @@ void runModeBase() {
   delay(2900);
   stop();
   driveForwards(200);
-  delay(300);
+  delay(100);
   stop();
 }
 
@@ -450,7 +450,7 @@ void runMode2(void) {
           Serial.println("closing");
           Servo2.write(i);
           Servo1.write(175 - i);
-          delay(20);
+          delay(30);
         }
         mode = 0;
         return;
@@ -570,7 +570,7 @@ int checkObjectDistance(int tracking_index) {
   pixy.ccc.getBlocks();
   for (int i = 0; i < pixy.ccc.numBlocks; i++) {
     if (pixy.ccc.blocks[i].m_index == tracking_index) {
-      if (pixy.ccc.blocks[i].m_x > 86) {
+      if (pixy.ccc.blocks[i].m_x > 84) {
         return 0;
       } else {
         return 1;
@@ -591,7 +591,7 @@ int checkOffset(int tracking_index) {
     if (pixy.ccc.blocks[i].m_index == tracking_index) {
       Serial.println("here");
       //Subtracts the object's x(y) value from the middle of the frame
-      return 110 - pixy.ccc.blocks[i].m_y;
+      return 130 - pixy.ccc.blocks[i].m_y;
     }
   }
   return 999;

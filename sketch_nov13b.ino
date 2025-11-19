@@ -24,13 +24,13 @@ int servo2 = 17;
 // TODO: Define constants/variables for motors (workshop 4)
 int LEFT_IN1 = 3;  // Speed pin, ranges from 0 to 255 (PWMA)
 int LEFT_IN2 = 5;      // Direction pin (DIRA)
-int mode = 2;
+int mode = -1;
 int RIGHT_IN2 = 2;  // Speed pin, ranges from 0 to 255 (PWMB)
 int RIGHT_IN1 = 4;      // Pin to move motor forwards (DIRB)
 int RED_LED = 8;
 int BLUE_LED = 9;
 int GREEN_LED = 15;
-int base_col = 7;
+int base_col = -1;
 // TODO: Define other constants to be used in your sumobot
 #define MAX_SPEED 255
 #define PARTIAL_SPEED 30
@@ -92,7 +92,9 @@ void setup() {
 
 void loop() {
 
-  if (mode == 0) {
+  if (mode == -1) {
+    runModeBase();
+  } else if (mode == 0) {
     runMode0();
   } else if (mode == 1) {
     runMode1();
@@ -426,7 +428,7 @@ void runMode2(void) {
   digitalWrite(GREEN_LED, LOW);
   delay(1000);
   Serial.println(pixy.ccc.numBlocks);
-
+  int hasBall = 0;
   if (pixy.ccc.numBlocks) {
     for (int l = 0; l < pixy.ccc.numBlocks; l++) {
       if (pixy.ccc.blocks[l].m_signature == 3 && pixy.ccc.blocks[l].m_x < 70) {
@@ -450,8 +452,17 @@ void runMode2(void) {
         }
         mode = 0;
         return;
+      } else if ((pixy.ccc.blocks[l].m_signature == 1 || pixy.ccc.blocks[l].m_signature == 2)  && pixy.ccc.blocks[l].m_x < 70) {
+        hasBall = 1;
       }
     }
+  }
+  if (hasBall == 0) {
+    driveBackwards(200);
+    delay(300);
+    stop();
+    mode = 0;
+    return; 
   }
   //Turns until base is in the center of screen
   int base_detected = 0;
@@ -485,6 +496,7 @@ void runMode3() {
   digitalWrite(RED_LED, LOW);
   digitalWrite(BLUE_LED, LOW);
   digitalWrite(GREEN_LED, HIGH);
+  delay(1000);
   for (int j = 43; j > 15; j--) {
   Servo2.write(j);
   Servo1.write(175 - j);

@@ -100,11 +100,11 @@ void loop() {
     runMode2();
   } else if (mode == 3) {
     runMode3();
-  }
+  } else {
     while (1) {
       delay(50);
     }
-
+  }
 }
 
 //ode==0 test 
@@ -473,6 +473,7 @@ void runMode2(void) {
           }       
           stop();
           mode = 3;
+          Serial.println("end of mode 2");
           return;
         }
       }
